@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
       formData.append("file", file);
 
       try {
-        const response = await fetch("http://127.0.0.1:8000/upload_excel/", {
+        const response = await fetch("/upload_excel/", {
           method: "POST",
           body: formData
         });
@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const formData = new FormData();
         formData.append("query", message);
 
-        const response = await fetch("http://127.0.0.1:8000/ask/", {
+        const response = await fetch("/ask/", {
           method: "POST",
           body: formData
         });
