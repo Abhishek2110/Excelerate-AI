@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excelerate AI</title>
+  <link rel="stylesheet" href="/styles/index.css">
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">Upload any Excel or CSV and ask your query related to it in natural language!</div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input">
+      <input type="text" id="messageInput" placeholder="Type a message...">
+      <label for="fileUpload" class="upload-btn">📂</label>
+      <input type="file" id="fileUpload" accept=".csv, .xls, .xlsx" hidden>
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <script src="/scripts/index.js"></script>
+</body>
+</html>
