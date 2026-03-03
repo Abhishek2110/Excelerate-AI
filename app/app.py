@@ -79,7 +79,7 @@ async def ask_question(query: str = Form(...)):
     except Exception as e:
         return {"answer": str(e)}
     
-from database import engine
-from models import Base
+from .database import engine
+from .models import Base
 
 Base.metadata.create_all(bind=engine)
