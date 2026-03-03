@@ -45,7 +45,7 @@ async def upload_excel(file: UploadFile = File(...)):
 
 
 @app.post("/ask/")
-async def ask_question(query: str = Form(...)):
+def ask_question(query: str = Form(...)):
     try:
         if "data" not in excel_data_store:
             return {"error": "No file uploaded yet!"}
