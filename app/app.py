@@ -6,6 +6,9 @@ import pandas as pd
 import requests
 import io
 import os
+from sqlalchemy.orm import Session
+from .database import SessionLocal, engine
+from .models import Chat, Message, Base
 
 load_dotenv()
 
@@ -61,25 +64,61 @@ async def ask_question(query: str = Form(...)):
         payload = {
             "model": os.getenv("MODEL_NAME"),
             "messages": [
-                {"role": "system", "content": "You are a data assistant. Answer questions correctly based on the uploaded Excel/CSV content."},
-                {"role": "user", "content": f"Data:\n{context}\n\nQuestion: {query}"}
+                {
+                    "role": "system",
+                    "content": "You are a data assistant. Answer questions correctly based on the uploaded Excel/CSV content."
+                },
+                {
+                    "role": "user",
+                    "content": f"Data:\n{context}\n\nQuestion: {query}"
+                }
             ]
         }
 
         api_url = os.getenv("API_URL")
-
         resp = requests.post(api_url, headers=headers, json=payload)
+
         if resp.status_code != 200:
             return {"error": f"API error: {resp.status_code} {resp.text}"}
 
         resp_json = resp.json()
         answer = resp_json["choices"][0]["message"]["content"]
 
-        return {"answer": answer}
-    except Exception as e:
-        return {"answer": str(e)}
-    
-from .database import engine
-from .models import Base
+        # =========================
+        # 🔥 NEW: STORE IN DATABASE
+        # =========================
 
-Base.metadata.create_all(bind=engine)
+        db: Session = SessionLocal()
+
+        # Create new chat for now (no user system yet)
+        new_chat = Chat(title="Excel Chat")
+        db.add(new_chat)
+        db.commit()
+        db.refresh(new_chat)
+
+        # Store user message
+        user_message = Message(
+            chat_id=new_chat.id,
+            role="user",
+            content=query
+        )
+        db.add(user_message)
+
+        # Store bot message
+        bot_message = Message(
+            chat_id=new_chat.id,
+            role="bot",
+            content=answer
+        )
+        db.add(bot_message)
+
+        db.commit()
+        db.close()
+
+        return {
+            "chat_id": str(new_chat.id),
+            "answer": answer
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
