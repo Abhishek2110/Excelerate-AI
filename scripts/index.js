@@ -1,100 +1,183 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const header = document.querySelector(".chat-header");
-  const text = "Upload any Excel or CSV and ask your query related to it in natural language!";
-  let index = 0;
 
-  // Typewriter effect
-  function typeEffect() {
-    if (index < text.length) {
-      header.textContent += text.charAt(index);
-      index++;
-      setTimeout(typeEffect, 50); // typing speed
-    } else {
-      setTimeout(() => {
-        header.textContent = "";
-        index = 0;
-        typeEffect();
-      }, 3000); // restart after delay
-    }
-  }
-
-  header.textContent = "";
-  typeEffect();
-
-  // Chat elements
   const sendBtn = document.getElementById("sendBtn");
   const messageInput = document.getElementById("messageInput");
   const chatMessages = document.getElementById("chatMessages");
   const fileUpload = document.getElementById("fileUpload");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const spinner = document.getElementById("spinner");
+  const toastContainer = document.getElementById("toast-container");
+  const fileInfo = document.getElementById("fileInfo");
+  const themeBtn = document.getElementById("themeToggle");
+  const themeIcon = document.getElementById("themeIcon");
+  const voiceBtn = document.getElementById("voiceBtn");
 
-  // Function to append message
+  /* ============================= */
+  /* Utility Functions */
+  /* ============================= */
+
+  function showSpinner(show) {
+    spinner.style.display = show ? "block" : "none";
+  }
+
+  function showToast(message, type = "success") {
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
   function appendMessage(message, sender) {
     const msgDiv = document.createElement("div");
-    msgDiv.classList.add("chat-message", sender === "user" ? "user-message" : "bot-message");
-    msgDiv.textContent = message;
+    msgDiv.classList.add("chat-message", sender);
+
+    const avatar = document.createElement("img");
+    avatar.classList.add("avatar");
+    avatar.src = sender === "user"
+      ? "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+      : "https://cdn-icons-png.flaticon.com/512/4712/4712109.png";
+
+    const bubble = document.createElement("div");
+    bubble.classList.add("message-bubble");
+    bubble.textContent = message;
+
+    msgDiv.appendChild(avatar);
+    msgDiv.appendChild(bubble);
     chatMessages.appendChild(msgDiv);
+
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // Upload file to backend
+  /* ============================= */
+  /* Upload Button Trigger */
+  /* ============================= */
+
+  uploadBtn.addEventListener("click", () => {
+    fileUpload.click();
+  });
+
+  /* ============================= */
+  /* File Upload */
+  /* ============================= */
+
   fileUpload.addEventListener("change", async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      appendMessage("Uploading file: " + file.name, "user");
+    if (!file) return;
 
-      const formData = new FormData();
-      formData.append("file", file);
+    fileInfo.innerHTML = `📄 ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+    showSpinner(true);
 
-      try {
-        const response = await fetch("/upload_excel/", {
-          method: "POST",
-          body: formData
-        });
+    const formData = new FormData();
+    formData.append("file", file);
 
-        const result = await response.json();
-        if (result.error) {
-          appendMessage("❌ Error: " + result.error, "bot");
-        } else {
-          appendMessage(`✅ File uploaded (${result.rows} rows, columns: ${result.columns.join(", ")})`, "bot");
-        }
-      } catch (err) {
-        appendMessage("❌ Upload failed", "bot");
+    try {
+      const response = await fetch("/upload_excel/", {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await response.json();
+      showSpinner(false);
+
+      if (result.error) {
+        showToast(result.error, "error");
+      } else {
+        showToast("File uploaded successfully!", "success");
       }
+
+    } catch {
+      showSpinner(false);
+      showToast("Upload failed", "error");
     }
   });
 
-  // Handle send button (query to backend)
+  /* ============================= */
+  /* Send Message */
+  /* ============================= */
+
   sendBtn.addEventListener("click", async () => {
     const message = messageInput.value.trim();
-    if (message) {
-      appendMessage(message, "user");
-      messageInput.value = "";
+    if (!message) return;
 
-      try {
-        const formData = new FormData();
-        formData.append("query", message);
+    appendMessage(message, "user");
+    messageInput.value = "";
+    showSpinner(true);
 
-        const response = await fetch("/ask/", {
-          method: "POST",
-          body: formData
-        });
+    const formData = new FormData();
+    formData.append("query", message);
 
-        const result = await response.json();
-        if (result.error) {
-          appendMessage("❌ Error: " + result.error, "bot");
-        } else {
-          appendMessage(result.answer, "bot");
-        }
-      } catch (err) {
-        appendMessage("❌ Query failed", "bot");
+    try {
+      const response = await fetch("/ask/", {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await response.json();
+      showSpinner(false);
+
+      if (result.error) {
+        showToast(result.error, "error");
+      } else {
+        appendMessage(result.answer, "bot");
       }
+
+    } catch {
+      showSpinner(false);
+      showToast("Query failed", "error");
     }
   });
 
-  // Handle Enter key
-  messageInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-      sendBtn.click();
-    }
+  messageInput.addEventListener("keypress", e => {
+    if (e.key === "Enter") sendBtn.click();
   });
+
+  /* ============================= */
+  /* Dark Mode (Smooth Icon Morph) */
+  /* ============================= */
+
+  function setTheme(isDark) {
+    if (isDark) {
+      document.body.classList.add("dark");
+      themeIcon.textContent = "☀️";
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.body.classList.remove("dark");
+      themeIcon.textContent = "🌙";
+      localStorage.setItem("theme", "light");
+    }
+  }
+
+  // Load saved theme
+  const savedTheme = localStorage.getItem("theme");
+  setTheme(savedTheme === "dark");
+
+  // Smooth transform animation
+  themeBtn.addEventListener("click", () => {
+
+    themeIcon.classList.add("rotate");
+
+    setTimeout(() => {
+      const isDark = document.body.classList.contains("dark");
+      setTheme(!isDark);
+      themeIcon.classList.remove("rotate");
+    }, 200);
+
+  });
+
+  /* ============================= */
+  /* Voice Input */
+  /* ============================= */
+
+  if ('webkitSpeechRecognition' in window) {
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = "en-US";
+
+    voiceBtn.addEventListener("click", () => recognition.start());
+
+    recognition.onresult = (event) => {
+      messageInput.value = event.results[0][0].transcript;
+    };
+  }
+
 });

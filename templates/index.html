@@ -4,20 +4,89 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Excelerate AI</title>
+
+  <!-- Styles -->
   <link rel="stylesheet" href="/styles/index.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=3">
 </head>
+
 <body>
   <div class="chat-container">
-    <div class="chat-header">Upload any Excel or CSV and ask your query related to it in natural language!</div>
-    <div class="chat-messages" id="chatMessages"></div>
+
+    <!-- HEADER -->
+    <header class="chat-header">
+      <div class="header-content">
+        <h1 class="header-title">
+          📊 Excelerate-AI: Smart Excel Data Assistant
+        </h1>
+
+        <!-- Smooth Transform Theme Button -->
+        <button id="themeToggle" class="theme-btn" aria-label="Toggle theme">
+          <span id="themeIcon">🌙</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" aria-live="assertive"></div>
+
+    <!-- File Info Section -->
+    <div id="fileInfo" class="file-info"></div>
+
+    <!-- Loading Spinner -->
+    <div class="spinner" id="spinner" role="status"></div>
+
+    <!-- Chat Messages -->
+    <div 
+      class="chat-messages" 
+      id="chatMessages" 
+      role="log" 
+      aria-live="polite"
+      tabindex="0">
+    </div>
+
+    <!-- Input Area -->
     <div class="chat-input">
-      <input type="text" id="messageInput" placeholder="Type a message...">
-      <label for="fileUpload" class="upload-btn">📂</label>
-      <input type="file" id="fileUpload" accept=".csv, .xls, .xlsx" hidden>
-      <button id="sendBtn">Send</button>
+
+      <!-- Text Input -->
+      <input 
+        type="text" 
+        id="messageInput"
+        placeholder="Ask something about your data..."
+        aria-label="Type your message"
+        autocomplete="off"
+      />
+
+      <!-- Voice Button -->
+      <button id="voiceBtn" class="icon-btn" aria-label="Voice input">
+        🎤
+      </button>
+
+      <!-- Upload Button -->
+      <button id="uploadBtn" class="icon-btn" aria-label="Upload file">
+        📂
+      </button>
+
+      <!-- Hidden File Input -->
+      <input 
+        type="file" 
+        id="fileUpload" 
+        accept=".csv,.xls,.xlsx" 
+        hidden
+      />
+
+      <!-- Send Button -->
+      <button id="sendBtn" aria-label="Send message">
+        Send
+      </button>
+
     </div>
   </div>
 
+  <!-- Script -->
   <script src="/scripts/index.js"></script>
+
 </body>
 </html>

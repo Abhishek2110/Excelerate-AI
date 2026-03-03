@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Background rounded square -->
+  <rect width="64" height="64" rx="12" fill="#1D6F42"/>
+  
+  <!-- Spreadsheet grid lines -->
+  <rect x="10" y="10" width="30" height="36" rx="2" fill="white" opacity="0.15"/>
+  <!-- Column divider -->
+  <line x1="22" y1="10" x2="22" y2="46" stroke="white" stroke-width="1" opacity="0.3"/>
+  <!-- Row dividers -->
+  <line x1="10" y1="19" x2="40" y2="19" stroke="white" stroke-width="1" opacity="0.3"/>
+  <line x1="10" y1="28" x2="40" y2="28" stroke="white" stroke-width="1" opacity="0.3"/>
+  <line x1="10" y1="37" x2="40" y2="37" stroke="white" stroke-width="1" opacity="0.3"/>
+
+  <!-- Header row -->
+  <rect x="10" y="10" width="30" height="9" rx="2" fill="white" opacity="0.25"/>
+
+  <!-- Data bars to suggest content -->
+  <rect x="24" y="21" width="13" height="4" rx="1" fill="white" opacity="0.5"/>
+  <rect x="24" y="30" width="9" height="4" rx="1" fill="white" opacity="0.5"/>
+  <rect x="24" y="39" width="11" height="4" rx="1" fill="white" opacity="0.5"/>
+  <rect x="12" y="21" width="7" height="4" rx="1" fill="white" opacity="0.5"/>
+  <rect x="12" y="30" width="7" height="4" rx="1" fill="white" opacity="0.5"/>
+  <rect x="12" y="39" width="7" height="4" rx="1" fill="white" opacity="0.5"/>
+
+  <!-- Chat bubble (question) -->
+  <circle cx="46" cy="46" r="13" fill="#FFD700"/>
+  <text x="46" y="51" text-anchor="middle" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#1D6F42">?</text>
+</svg>

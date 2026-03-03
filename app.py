@@ -13,6 +13,7 @@ app = FastAPI()
 
 app.mount("/styles", StaticFiles(directory="styles"), name="styles")
 app.mount("/scripts", StaticFiles(directory="scripts"), name="scripts")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 excel_data_store = {}
 
