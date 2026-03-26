@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const themeIcon = document.getElementById("themeIcon");
   const voiceBtn = document.getElementById("voiceBtn");
 
+  // 🔥 CHAT STATE
+  let currentChatId = null;
+
   /* ============================= */
   /* Utility Functions */
   /* ============================= */
@@ -107,6 +110,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const formData = new FormData();
     formData.append("query", message);
 
+    // 🔥 SEND chat_id IF EXISTS
+    if (currentChatId) {
+      formData.append("chat_id", currentChatId);
+    }
+
     try {
       const response = await fetch("/ask/", {
         method: "POST",
@@ -120,6 +128,11 @@ document.addEventListener("DOMContentLoaded", () => {
         showToast(result.error, "error");
       } else {
         appendMessage(result.answer, "bot");
+
+        // 🔥 STORE chat_id FOR CONTINUATION
+        if (result.chat_id) {
+          currentChatId = result.chat_id;
+        }
       }
 
     } catch {
@@ -133,7 +146,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* ============================= */
-  /* Dark Mode (Smooth Icon Morph) */
+  /* NEW CHAT FUNCTION */
+  /* ============================= */
+
+  function startNewChat() {
+    currentChatId = null;
+    chatMessages.innerHTML = "";
+    showToast("Started new chat", "success");
+  }
+
+  /* ============================= */
+  /* Dark Mode */
   /* ============================= */
 
   function setTheme(isDark) {
@@ -148,13 +171,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Load saved theme
   const savedTheme = localStorage.getItem("theme");
   setTheme(savedTheme === "dark");
 
-  // Smooth transform animation
   themeBtn.addEventListener("click", () => {
-
     themeIcon.classList.add("rotate");
 
     setTimeout(() => {
@@ -162,7 +182,6 @@ document.addEventListener("DOMContentLoaded", () => {
       setTheme(!isDark);
       themeIcon.classList.remove("rotate");
     }, 200);
-
   });
 
   /* ============================= */

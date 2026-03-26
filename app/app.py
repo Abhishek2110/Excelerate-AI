@@ -7,8 +7,8 @@ import requests
 import io
 import os
 from sqlalchemy.orm import Session
-from .database import SessionLocal, engine
-from .models import Chat, Message, Base
+from .database import SessionLocal
+from .models import Chat, Message
 
 load_dotenv()
 
@@ -45,8 +45,13 @@ async def upload_excel(file: UploadFile = File(...)):
 
 
 @app.post("/ask/")
-def ask_question(query: str = Form(...)):
+def ask_question(query: str = Form(...), chat_id: str = Form(None)):
+    db: Session = SessionLocal()
+
     try:
+        # =========================
+        # VALIDATE DATA
+        # =========================
         if "data" not in excel_data_store:
             return {"error": "No file uploaded yet!"}
 
@@ -56,6 +61,11 @@ def ask_question(query: str = Form(...)):
         if not api_key:
             return {"error": "GROQ_API_KEY not set"}
 
+        api_url = os.getenv("API_URL")
+
+        # =========================
+        # CALL LLM API
+        # =========================
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
@@ -75,7 +85,6 @@ def ask_question(query: str = Form(...)):
             ]
         }
 
-        api_url = os.getenv("API_URL")
         resp = requests.post(api_url, headers=headers, json=payload)
 
         if resp.status_code != 200:
@@ -85,41 +94,59 @@ def ask_question(query: str = Form(...)):
         answer = resp_json["choices"][0]["message"]["content"]
 
         # =========================
-        # 🔥 NEW: STORE IN DATABASE
+        # CHAT CONTINUATION LOGIC
         # =========================
 
-        db: Session = SessionLocal()
+        if chat_id:
+            chat = db.query(Chat).filter(Chat.id == chat_id).first()
 
-        # Create new chat for now (no user system yet)
-        new_chat = Chat(title="Excel Chat")
-        db.add(new_chat)
-        db.commit()
-        db.refresh(new_chat)
+            if not chat:
+                return {"error": "Invalid chat_id"}
 
-        # Store user message
+        else:
+            # Create new chat with dynamic title
+            chat = Chat(title=generate_title(query))            
+            db.add(chat)
+            db.commit()
+            db.refresh(chat)
+
+        # =========================
+        # STORE MESSAGES
+        # =========================
+
         user_message = Message(
-            chat_id=new_chat.id,
+            chat_id=chat.id,
             role="user",
             content=query
         )
         db.add(user_message)
 
-        # Store bot message
         bot_message = Message(
-            chat_id=new_chat.id,
+            chat_id=chat.id,
             role="bot",
             content=answer
         )
         db.add(bot_message)
 
         db.commit()
-        chat_id = str(new_chat.id)
-        db.close()
 
         return {
-            "chat_id": chat_id,
+            "chat_id": str(chat.id),
             "answer": answer
         }
 
     except Exception as e:
         return {"error": str(e)}
+
+    finally:
+        db.close()
+        
+# =========================
+# HELPER FUNCTION TO GENERATE CHAT TITLES
+# =========================  
+        
+def generate_title(query: str):
+    q = query.strip().capitalize()
+    if len(q) > 40:
+        q = q[:40] + "..."
+    return q
