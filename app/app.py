@@ -113,10 +113,11 @@ def ask_question(query: str = Form(...)):
         db.add(bot_message)
 
         db.commit()
+        chat_id = str(new_chat.id)
         db.close()
 
         return {
-            "chat_id": str(new_chat.id),
+            "chat_id": chat_id,
             "answer": answer
         }
 
