@@ -141,6 +141,72 @@ def ask_question(query: str = Form(...), chat_id: str = Form(None)):
     finally:
         db.close()
         
+@app.get("/chats/")
+def get_chats():
+    db = SessionLocal()
+    try:
+        chats = db.query(Chat).order_by(Chat.created_at.desc()).all()
+
+        return [
+            {"id": str(chat.id), "title": chat.title}
+            for chat in chats
+        ]
+    finally:
+        db.close()
+        
+@app.get("/chats/{chat_id}")
+def get_messages(chat_id: str):
+    db = SessionLocal()
+    try:
+        messages = db.query(Message)\
+            .filter(Message.chat_id == chat_id)\
+            .order_by(Message.created_at)\
+            .all()
+
+        return [
+            {"role": msg.role, "content": msg.content}
+            for msg in messages
+        ]
+    finally:
+        db.close()
+        
+@app.put("/chats/{chat_id}")
+def rename_chat(chat_id: str, title: str = Form(...)):
+    db = SessionLocal()
+    try:
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+
+        if not chat:
+            return {"error": "Chat not found"}
+
+        chat.title = title
+        db.commit()
+
+        return {"message": "Chat renamed successfully"}
+
+    finally:
+        db.close()
+        
+@app.delete("/chats/{chat_id}")
+def delete_chat(chat_id: str):
+    db = SessionLocal()
+    try:
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+
+        if not chat:
+            return {"error": "Chat not found"}
+
+        # delete messages first (important)
+        db.query(Message).filter(Message.chat_id == chat_id).delete()
+
+        db.delete(chat)
+        db.commit()
+
+        return {"message": "Chat deleted successfully"}
+
+    finally:
+        db.close()
+        
 # =========================
 # HELPER FUNCTION TO GENERATE CHAT TITLES
 # =========================  

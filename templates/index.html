@@ -13,78 +13,87 @@
 </head>
 
 <body>
-  <div class="chat-container">
+  <div class="app-layout">
+    
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <button id="newChatBtn">+ New Chat</button>
+      <div id="chatList"></div>
+    </aside>
+    
+    <!-- CHAT AREA -->
+    <div class="chat-container">
 
-    <!-- HEADER -->
-    <header class="chat-header">
-      <div class="header-content">
-        <h1 class="header-title">
-          📊 Excelerate-AI: Smart Excel Data Assistant
-        </h1>
+      <!-- HEADER -->
+      <header class="chat-header">
+        <div class="header-content">
+          <h1 class="header-title">
+            📊 Excelerate-AI: Smart Excel Data Assistant
+          </h1>
 
-        <!-- Smooth Transform Theme Button -->
-        <button id="themeToggle" class="theme-btn" aria-label="Toggle theme">
-          <span id="themeIcon">🌙</span>
-        </button>
+          <!-- Smooth Transform Theme Button -->
+          <button id="themeToggle" class="theme-btn" aria-label="Toggle theme">
+            <span id="themeIcon">🌙</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Toast Notifications -->
+      <div id="toast-container" aria-live="assertive"></div>
+
+      <!-- File Info Section -->
+      <div id="fileInfo" class="file-info"></div>
+
+      <!-- Loading Spinner -->
+      <div class="spinner" id="spinner" role="status"></div>
+
+      <!-- Chat Messages -->
+      <div 
+        class="chat-messages" 
+        id="chatMessages" 
+        role="log" 
+        aria-live="polite"
+        tabindex="0">
       </div>
-    </header>
 
-    <!-- Toast Notifications -->
-    <div id="toast-container" aria-live="assertive"></div>
+      <!-- Input Area -->
+      <div class="chat-input">
 
-    <!-- File Info Section -->
-    <div id="fileInfo" class="file-info"></div>
+        <!-- Text Input -->
+        <input 
+          type="text" 
+          id="messageInput"
+          placeholder="Ask something about your data..."
+          aria-label="Type your message"
+          autocomplete="off"
+        />
 
-    <!-- Loading Spinner -->
-    <div class="spinner" id="spinner" role="status"></div>
+        <!-- Voice Button -->
+        <button id="voiceBtn" class="icon-btn" aria-label="Voice input">
+          🎤
+        </button>
 
-    <!-- Chat Messages -->
-    <div 
-      class="chat-messages" 
-      id="chatMessages" 
-      role="log" 
-      aria-live="polite"
-      tabindex="0">
-    </div>
+        <!-- Upload Button -->
+        <button id="uploadBtn" class="icon-btn" aria-label="Upload file">
+          📂
+        </button>
 
-    <!-- Input Area -->
-    <div class="chat-input">
+        <!-- Hidden File Input -->
+        <input 
+          type="file" 
+          id="fileUpload" 
+          accept=".csv,.xls,.xlsx" 
+          hidden
+        />
 
-      <!-- Text Input -->
-      <input 
-        type="text" 
-        id="messageInput"
-        placeholder="Ask something about your data..."
-        aria-label="Type your message"
-        autocomplete="off"
-      />
+        <!-- Send Button -->
+        <button id="sendBtn" aria-label="Send message">
+          Send
+        </button>
 
-      <!-- Voice Button -->
-      <button id="voiceBtn" class="icon-btn" aria-label="Voice input">
-        🎤
-      </button>
-
-      <!-- Upload Button -->
-      <button id="uploadBtn" class="icon-btn" aria-label="Upload file">
-        📂
-      </button>
-
-      <!-- Hidden File Input -->
-      <input 
-        type="file" 
-        id="fileUpload" 
-        accept=".csv,.xls,.xlsx" 
-        hidden
-      />
-
-      <!-- Send Button -->
-      <button id="sendBtn" aria-label="Send message">
-        Send
-      </button>
-
+      </div>
     </div>
   </div>
-
   <!-- Script -->
   <script src="/scripts/index.js"></script>
 
