@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, DateTime
+from sqlalchemy import Column, String, ForeignKey, DateTime, LargeBinary
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -17,6 +17,8 @@ class Chat(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     title = Column(String)
+    file_data = Column(LargeBinary)
+    file_name = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Message(Base):
