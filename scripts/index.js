@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const themeBtn = document.getElementById("themeToggle");
   const themeIcon = document.getElementById("themeIcon");
   const voiceBtn = document.getElementById("voiceBtn");
+  const datasetBar = document.getElementById("currentDataset");
 
   let currentChatId = null;
 
@@ -53,6 +54,19 @@ document.addEventListener("DOMContentLoaded", () => {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
+  // 🔥 Dataset UI updater
+  function updateDatasetUI(fileName, fileSize = null) {
+    if (!fileName) {
+      datasetBar.textContent = "📄 No dataset selected";
+    } else {
+      if (fileSize) {
+        datasetBar.textContent = `📄 ${fileName} (${fileSize})`;
+      } else {
+        datasetBar.textContent = `📄 ${fileName}`;
+      }
+    }
+  }
+
   /* ============================= */
   /* Upload */
   /* ============================= */
@@ -63,7 +77,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    fileInfo.innerHTML = `📄 ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+    // 🔥 Start new chat
+    currentChatId = null;
+    chatMessages.innerHTML = "";
+
+    appendMessage("📊 New dataset loaded. Ask your questions!", "bot");
+
+    // 🔥 Update dataset UI
+    const sizeKB = (file.size / 1024).toFixed(2) + " KB";
+    updateDatasetUI(file.name, sizeKB);
     showSpinner(true);
 
     const formData = new FormData();
@@ -106,7 +128,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const div = document.createElement("div");
         div.className = "chat-item";
 
-        // highlight active
         if (chat.id === currentChatId) {
           div.classList.add("active-chat");
         }
@@ -123,14 +144,12 @@ document.addEventListener("DOMContentLoaded", () => {
         div.appendChild(title);
         div.appendChild(menuBtn);
 
-        // click chat
         div.addEventListener("click", (e) => {
           if (e.target !== menuBtn) {
             loadChatMessages(chat.id);
           }
         });
 
-        // menu click
         menuBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           showMenu(menuBtn, chat);
@@ -160,7 +179,17 @@ document.addEventListener("DOMContentLoaded", () => {
         appendMessage(msg.content, msg.role);
       });
 
-      loadChats(); // refresh highlight
+      // 🔥 Get dataset name
+      const chatsResponse = await fetch("/chats/");
+      const chats = await chatsResponse.json();
+
+      const currentChat = chats.find(c => c.id === chatId);
+
+      if (currentChat) {
+        updateDatasetUI(currentChat.file_name);
+      }
+
+      loadChats();
 
     } catch {
       showToast("Failed to load messages", "error");
@@ -193,7 +222,6 @@ document.addEventListener("DOMContentLoaded", () => {
     menu.style.top = rect.bottom + "px";
     menu.style.left = rect.left + "px";
 
-    // Rename
     rename.onclick = async () => {
       const newTitle = prompt("Enter new name:");
       if (!newTitle) return;
@@ -207,7 +235,6 @@ document.addEventListener("DOMContentLoaded", () => {
       menu.remove();
     };
 
-    // Delete
     del.onclick = async () => {
       const confirmDelete = confirm("Delete this chat?");
       if (!confirmDelete) return;
@@ -219,6 +246,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (currentChatId === chat.id) {
         currentChatId = null;
         chatMessages.innerHTML = "";
+        updateDatasetUI(null);
       }
 
       loadChats();
@@ -237,8 +265,9 @@ document.addEventListener("DOMContentLoaded", () => {
   newChatBtn.addEventListener("click", () => {
     currentChatId = null;
     chatMessages.innerHTML = "";
-    loadChats();
+    updateDatasetUI(null);
     showToast("New chat started", "success");
+    loadChats();
   });
 
   /* ============================= */
