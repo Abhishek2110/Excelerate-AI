@@ -6,11 +6,14 @@ import pandas as pd
 import requests
 import io
 import os
+
 from .auth import hash_password, create_access_token, verify_password, decode_token
 
 from sqlalchemy.orm import Session
-from .database import SessionLocal
-from .models import Chat, Message, User
+from .database import SessionLocal, engine
+from .models import Chat, Message, User, Base
+
+Base.metadata.create_all(bind=engine)
 
 load_dotenv()
 
@@ -82,6 +85,10 @@ async def home():
 @app.get("/login")
 async def login_page():
     return FileResponse(os.path.join("templates", "login.html"))
+
+@app.get("/signup")
+async def signup_page():
+    return FileResponse(os.path.join("templates", "signup.html"))
 
 # =========================
 # UPLOAD EXCEL
@@ -364,7 +371,7 @@ def signup(email: str = Form(...), password: str = Form(...), db: Session = Depe
 
     user = User(
         email=email,
-        password=hash_password(password)
+        hashed_password=hash_password(password)
     )
 
     db.add(user)
@@ -377,10 +384,10 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
 
     user = db.query(User).filter(User.email == email).first()
 
-    if not user or not verify_password(password, user.password):
+    if not user or not verify_password(password, user.hashed_password):
         return {"error": "Invalid credentials"}
 
-    token = create_access_token({"user_id": user.id})
+    token = create_access_token({"user_id": str(user.id)})
 
     return {
         "access_token": token,
