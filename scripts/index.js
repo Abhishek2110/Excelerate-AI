@@ -9,13 +9,49 @@ document.addEventListener("DOMContentLoaded", () => {
   const uploadBtn = document.getElementById("uploadBtn");
   const spinner = document.getElementById("spinner");
   const toastContainer = document.getElementById("toast-container");
-  const fileInfo = document.getElementById("fileInfo");
   const themeBtn = document.getElementById("themeToggle");
   const themeIcon = document.getElementById("themeIcon");
   const voiceBtn = document.getElementById("voiceBtn");
   const datasetBar = document.getElementById("currentDataset");
 
+  const authBanner = document.getElementById("authBanner");
+
   let currentChatId = null;
+
+  const token = localStorage.getItem("token");
+  const isLoggedIn = !!token;
+
+  /* ============================= */
+  /* AUTH BANNER */
+  /* ============================= */
+
+  function renderAuthBanner() {
+    if (!authBanner) return;
+
+    if (!isLoggedIn) {
+      authBanner.innerHTML = `
+        ⚠️ This is a temporary chat. Your chats will not be saved.
+        <button id="loginRedirectBtn">Login</button>
+      `;
+
+      document.getElementById("loginRedirectBtn").onclick = () => {
+        window.location.href = "/login";
+      };
+
+    } else {
+      authBanner.innerHTML = `
+        ✅ Logged in
+        <button id="logoutBtn">Logout</button>
+      `;
+
+      document.getElementById("logoutBtn").onclick = () => {
+        localStorage.removeItem("token");
+        location.reload();
+      };
+    }
+  }
+
+  renderAuthBanner();
 
   /* ============================= */
   /* Utility */
@@ -54,17 +90,18 @@ document.addEventListener("DOMContentLoaded", () => {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // 🔥 Dataset UI updater
   function updateDatasetUI(fileName, fileSize = null) {
     if (!fileName) {
       datasetBar.textContent = "📄 No dataset selected";
     } else {
-      if (fileSize) {
-        datasetBar.textContent = `📄 ${fileName} (${fileSize})`;
-      } else {
-        datasetBar.textContent = `📄 ${fileName}`;
-      }
+      datasetBar.textContent = fileSize
+        ? `📄 ${fileName} (${fileSize})`
+        : `📄 ${fileName}`;
     }
+  }
+
+  function getAuthHeader() {
+    return token ? { "Authorization": "Bearer " + token } : {};
   }
 
   /* ============================= */
@@ -77,15 +114,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 🔥 Start new chat
     currentChatId = null;
     chatMessages.innerHTML = "";
 
     appendMessage("📊 New dataset loaded. Ask your questions!", "bot");
 
-    // 🔥 Update dataset UI
     const sizeKB = (file.size / 1024).toFixed(2) + " KB";
     updateDatasetUI(file.name, sizeKB);
+
     showSpinner(true);
 
     const formData = new FormData();
@@ -94,6 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch("/upload_excel/", {
         method: "POST",
+        headers: getAuthHeader(),
         body: formData
       });
 
@@ -113,18 +150,24 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* ============================= */
-  /* Sidebar - Load Chats */
+  /* Sidebar */
   /* ============================= */
 
   async function loadChats() {
-    try {
-      const response = await fetch("/chats/");
-      const chats = await response.json();
+    if (!isLoggedIn) {
+      chatList.innerHTML = `<div style="opacity:0.6;">Login to see saved chats</div>`;
+      return;
+    }
 
+    try {
+      const response = await fetch("/chats/", {
+        headers: getAuthHeader()
+      });
+
+      const chats = await response.json();
       chatList.innerHTML = "";
 
       chats.forEach(chat => {
-
         const div = document.createElement("div");
         div.className = "chat-item";
 
@@ -132,11 +175,9 @@ document.addEventListener("DOMContentLoaded", () => {
           div.classList.add("active-chat");
         }
 
-        // title
         const title = document.createElement("span");
         title.textContent = chat.title;
 
-        // menu button
         const menuBtn = document.createElement("span");
         menuBtn.textContent = "⋮";
         menuBtn.className = "menu-btn";
@@ -163,13 +204,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /* ============================= */
-  /* Load Messages */
-  /* ============================= */
-
   async function loadChatMessages(chatId) {
     try {
-      const response = await fetch(`/chats/${chatId}`);
+      const response = await fetch(`/chats/${chatId}`, {
+        headers: getAuthHeader()
+      });
+
       const messages = await response.json();
 
       chatMessages.innerHTML = "";
@@ -179,10 +219,11 @@ document.addEventListener("DOMContentLoaded", () => {
         appendMessage(msg.content, msg.role);
       });
 
-      // 🔥 Get dataset name
-      const chatsResponse = await fetch("/chats/");
-      const chats = await chatsResponse.json();
+      const chatsResponse = await fetch("/chats/", {
+        headers: getAuthHeader()
+      });
 
+      const chats = await chatsResponse.json();
       const currentChat = chats.find(c => c.id === chatId);
 
       if (currentChat) {
@@ -228,6 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       await fetch(`/chats/${chat.id}`, {
         method: "PUT",
+        headers: getAuthHeader(),
         body: new URLSearchParams({ title: newTitle })
       });
 
@@ -240,7 +282,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!confirmDelete) return;
 
       await fetch(`/chats/${chat.id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: getAuthHeader()
       });
 
       if (currentChatId === chat.id) {
@@ -292,6 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch("/ask/", {
         method: "POST",
+        headers: getAuthHeader(),
         body: formData
       });
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, Depends, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
@@ -6,10 +6,11 @@ import pandas as pd
 import requests
 import io
 import os
+from .auth import hash_password, create_access_token, verify_password, decode_token
 
 from sqlalchemy.orm import Session
 from .database import SessionLocal
-from .models import Chat, Message
+from .models import Chat, Message, User
 
 load_dotenv()
 
@@ -23,6 +24,54 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 excel_data_store = {}
 
 # =========================
+# HELPER FUNCTIONS
+# =========================
+def generate_title(query: str):
+    q = query.strip().capitalize()
+    if len(q) > 40:
+        q = q[:40] + "..."
+    return q
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_current_user(authorization: str = Header(None), db: Session = Depends(get_db)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing token")
+
+    try:
+        token = authorization.split(" ")[1]
+        payload = decode_token(token)
+        user_id = payload.get("user_id")
+
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=401)
+
+        return user
+
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+def get_optional_user(authorization: str = Header(None), db: Session = Depends(get_db)):
+    if not authorization:
+        return None
+
+    try:
+        token = authorization.split(" ")[1]
+        payload = decode_token(token)
+        user_id = payload.get("user_id")
+
+        return db.query(User).filter(User.id == user_id).first()
+
+    except:
+        return None
+    
+# =========================
 # HOME
 # =========================
 @app.get("/")
@@ -30,6 +79,9 @@ async def home():
     file_path = os.path.join("templates", "index.html")
     return FileResponse(file_path)
 
+@app.get("/login")
+async def login_page():
+    return FileResponse(os.path.join("templates", "login.html"))
 
 # =========================
 # UPLOAD EXCEL
@@ -71,7 +123,12 @@ async def upload_excel(file: UploadFile = File(...)):
 # ASK QUESTION
 # =========================
 @app.post("/ask/")
-def ask_question(query: str = Form(...), chat_id: str = Form(None)):
+def ask_question(
+    query: str = Form(...),
+    chat_id: str = Form(None),
+    current_user: User = Depends(get_optional_user),
+    db: Session = Depends(get_db)
+):
     db: Session = SessionLocal()
 
     try:
@@ -100,17 +157,20 @@ def ask_question(query: str = Form(...), chat_id: str = Form(None)):
             file_bytes = excel_data_store["file_data"]
             file_name = excel_data_store["file_name"]
 
-            chat = Chat(
-                title=generate_title(query),
-                file_data=file_bytes,
-                file_name=file_name
-            )
-            db.add(chat)
-            db.commit()
-            db.refresh(chat)
+            chat = None
+            if current_user:
+                chat = Chat(
+                    title=generate_title(query),
+                    file_data=file_bytes,
+                    file_name=file_name,
+                    user_id=current_user.id
+                )
+                db.add(chat)
+                db.commit()
+                db.refresh(chat)
 
-            # Clear temp store after use
-            excel_data_store.clear()
+                # Clear temp store after use
+                excel_data_store.clear()
 
         # =========================
         # PARSE FILE
@@ -121,7 +181,6 @@ def ask_question(query: str = Form(...), chat_id: str = Form(None)):
         else:
             df = pd.read_excel(io.BytesIO(file_bytes))
 
-        # ✅ Limit context (VERY IMPORTANT)
         context = df.to_string(index=False)
 
         # =========================
@@ -165,24 +224,25 @@ def ask_question(query: str = Form(...), chat_id: str = Form(None)):
         # STORE MESSAGES
         # =========================
 
-        user_message = Message(
-            chat_id=chat.id,
-            role="user",
-            content=query
-        )
-        db.add(user_message)
+        if chat:
+            user_message = Message(
+                chat_id=chat.id,
+                role="user",
+                content=query
+            )
+            db.add(user_message)
 
-        bot_message = Message(
-            chat_id=chat.id,
-            role="bot",
-            content=answer
-        )
-        db.add(bot_message)
+            bot_message = Message(
+                chat_id=chat.id,
+                role="bot",
+                content=answer
+            )
+            db.add(bot_message)
 
-        db.commit()
+            db.commit()
 
         return {
-            "chat_id": str(chat.id),
+            "chat_id": str(chat.id) if chat else None,
             "answer": answer
         }
 
@@ -197,10 +257,12 @@ def ask_question(query: str = Form(...), chat_id: str = Form(None)):
 # GET ALL CHATS
 # =========================
 @app.get("/chats/")
-def get_chats():
-    db = SessionLocal()
+def get_chats(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        chats = db.query(Chat).order_by(Chat.created_at.desc()).all()
+        chats = db.query(Chat)\
+            .filter(Chat.user_id == current_user.id)\
+            .order_by(Chat.created_at.desc())\
+            .all()
 
         return [
             {
@@ -208,18 +270,29 @@ def get_chats():
                 "title": chat.title,
                 "file_name": chat.file_name
             }
-            for chat in chats
+            for chat in chats                                                                                                                                                                                                                                   
         ]
     finally:
         db.close()
-
+        
 # =========================
 # GET CHAT MESSAGES
 # =========================
 @app.get("/chats/{chat_id}")
-def get_messages(chat_id: str):
-    db = SessionLocal()
+def get_messages(
+    chat_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     try:
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+
+        if not chat:
+            return {"error": "Chat not found"}
+
+        if chat.user_id != current_user.id:
+            return {"error": "Unauthorized"}
+
         messages = db.query(Message)\
             .filter(Message.chat_id == chat_id)\
             .order_by(Message.created_at)\
@@ -237,19 +310,26 @@ def get_messages(chat_id: str):
 # RENAME CHAT
 # =========================
 @app.put("/chats/{chat_id}")
-def rename_chat(chat_id: str, title: str = Form(...)):
-    db = SessionLocal()
+def rename_chat(
+    chat_id: str,
+    title: str = Form(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     try:
         chat = db.query(Chat).filter(Chat.id == chat_id).first()
 
         if not chat:
             return {"error": "Chat not found"}
 
+        # 🔥 SECURITY CHECK
+        if chat.user_id != current_user.id:
+            return {"error": "Unauthorized"}
+
         chat.title = title
         db.commit()
 
         return {"message": "Chat renamed successfully"}
-
     finally:
         db.close()
 
@@ -275,12 +355,34 @@ def delete_chat(chat_id: str):
     finally:
         db.close()
 
+@app.post("/signup/")
+def signup(email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
 
-# =========================
-# HELPER FUNCTION
-# =========================
-def generate_title(query: str):
-    q = query.strip().capitalize()
-    if len(q) > 40:
-        q = q[:40] + "..."
-    return q
+    existing = db.query(User).filter(User.email == email).first()
+    if existing:
+        return {"error": "User already exists"}
+
+    user = User(
+        email=email,
+        password=hash_password(password)
+    )
+
+    db.add(user)
+    db.commit()
+
+    return {"message": "User created successfully"}
+
+@app.post("/login/")
+def login(email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user or not verify_password(password, user.password):
+        return {"error": "Invalid credentials"}
+
+    token = create_access_token({"user_id": user.id})
+
+    return {
+        "access_token": token,
+        "token_type": "bearer"
+    }

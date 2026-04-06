@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Excelerate AI</title>
+
+  <link rel="stylesheet" href="/styles/login.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=3">
+</head>
+
+<body>
+
+  <!-- THEME BUTTON -->
+  <button id="themeToggle" class="theme-btn">
+    <span id="themeIcon">🌙</span>
+  </button>
+
+  <div class="login-container">
+
+    <div class="login-box">
+
+      <h1 class="app-title">📊 Excelerate-AI</h1>
+      <p class="subtitle">Smart Excel Data Assistant</p>
+
+      <input type="email" id="email" placeholder="Enter your email" />
+      <input type="password" id="password" placeholder="Enter your password" />
+
+      <button id="loginBtn">Login</button>
+
+      <p class="signup-text">
+        Don't have an account? <span id="goSignup">Sign up</span>
+      </p>
+
+      <div id="errorMsg" class="error"></div>
+
+    </div>
+
+  </div>
+
+  <script src="/scripts/login.js"></script>
+
+</body>
+</html>
