@@ -1,5 +1,15 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+  const params = new URLSearchParams(window.location.search);
+  const urlToken = params.get('token');
+  if (urlToken) {
+    localStorage.setItem("token", urlToken);
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  const token = localStorage.getItem("token");
+  const isLoggedIn = !!token;
+
   const sendBtn = document.getElementById("sendBtn");
   const messageInput = document.getElementById("messageInput");
   const chatMessages = document.getElementById("chatMessages");
@@ -13,13 +23,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const themeIcon = document.getElementById("themeIcon");
   const voiceBtn = document.getElementById("voiceBtn");
   const datasetBar = document.getElementById("currentDataset");
-
   const authBanner = document.getElementById("authBanner");
 
   let currentChatId = null;
-
-  const token = localStorage.getItem("token");
-  const isLoggedIn = !!token;
 
   /* ============================= */
   /* AUTH BANNER */
@@ -164,6 +170,10 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: getAuthHeader()
       });
 
+      if (!response.ok) {
+        throw new Error("Failed to fetch chats");
+      }
+
       const chats = await response.json();
       chatList.innerHTML = "";
 
@@ -199,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
         chatList.appendChild(div);
       });
 
-    } catch {
+    } catch (err) {
       showToast("Failed to load chats", "error");
     }
   }
@@ -209,6 +219,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(`/chats/${chatId}`, {
         headers: getAuthHeader()
       });
+
+      if (!response.ok) throw new Error("Failed to fetch messages");
 
       const messages = await response.json();
 
@@ -232,7 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       loadChats();
 
-    } catch {
+    } catch (err) {
       showToast("Failed to load messages", "error");
     }
   }

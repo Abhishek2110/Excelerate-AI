@@ -1,6 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, Form, Depends, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from dotenv import load_dotenv
 import pandas as pd
 import requests
@@ -12,12 +12,17 @@ from .auth import hash_password, create_access_token, verify_password, decode_to
 from sqlalchemy.orm import Session
 from .database import SessionLocal, engine
 from .models import Chat, Message, User, Base
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.requests import Request
+from .oauth import oauth
 
 Base.metadata.create_all(bind=engine)
 
 load_dotenv()
 
 app = FastAPI()
+
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY"))
 
 app.mount("/styles", StaticFiles(directory="styles"), name="styles")
 app.mount("/scripts", StaticFiles(directory="scripts"), name="scripts")
@@ -53,11 +58,11 @@ def get_current_user(authorization: str = Header(None), db: Session = Depends(ge
 
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise HTTPException(status_code=401)
+            raise HTTPException(status_code=401, detail="User not found")
 
         return user
 
-    except:
+    except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid token")
     
 def get_optional_user(authorization: str = Header(None), db: Session = Depends(get_db)):
@@ -89,6 +94,42 @@ async def login_page():
 @app.get("/signup")
 async def signup_page():
     return FileResponse(os.path.join("templates", "signup.html"))
+
+@app.get("/auth/google")
+async def google_login(request: Request):
+    redirect_uri = request.url_for('google_callback')
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/google/callback")
+async def google_callback(request: Request, db: Session = Depends(get_db)):
+    token = await oauth.google.authorize_access_token(request)
+    user_info = token.get('userinfo')
+
+    if not user_info:
+        raise HTTPException(status_code=400, detail="Failed to fetch user info from Google")
+
+    email = user_info['email']
+    name = user_info.get('name', '')
+
+    # Check if user exists, else create
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(
+            email=email,
+            name=name,
+            hashed_password=None,
+            auth_provider="google"
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # Create JWT token (reuse your existing function)
+    access_token = create_access_token(data={"user_id": str(user.id)})
+
+    # Redirect to frontend with token
+    frontend_url = "/"
+    return RedirectResponse(url=f"{frontend_url}?token={access_token}")
 
 # =========================
 # UPLOAD EXCEL
@@ -381,15 +422,12 @@ def signup(email: str = Form(...), password: str = Form(...), db: Session = Depe
 
 @app.post("/login/")
 def login(email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-
     user = db.query(User).filter(User.email == email).first()
-
-    if not user or not verify_password(password, user.hashed_password):
-        return {"error": "Invalid credentials"}
-
-    token = create_access_token({"user_id": str(user.id)})
-
-    return {
-        "access_token": token,
-        "token_type": "bearer"
-    }
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if user.auth_provider == "google":
+        raise HTTPException(status_code=400, detail="Please sign in with Google")
+    if not verify_password(password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    access_token = create_access_token(data={"user_id": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer"}
