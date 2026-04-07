@@ -32,12 +32,15 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ============================= */
 
   function renderAuthBanner() {
-    if (!authBanner) return;
-
     if (!isLoggedIn) {
       authBanner.innerHTML = `
-        ⚠️ This is a temporary chat. Your chats will not be saved.
-        <button id="loginRedirectBtn">Login</button>
+        <div class="auth-content warning">
+          <span class="auth-icon">⚠️</span>
+          <span class="auth-text">
+            Temporary chat — your data won’t be saved
+          </span>
+          <button id="loginRedirectBtn" class="auth-btn">Login</button>
+        </div>
       `;
 
       document.getElementById("loginRedirectBtn").onclick = () => {
@@ -46,8 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } else {
       authBanner.innerHTML = `
-        ✅ Logged in
-        <button id="logoutBtn">Logout</button>
+        <div class="auth-content success">
+          <span class="auth-icon">✅</span>
+          <span class="auth-text">Logged in</span>
+          <button id="logoutBtn" class="auth-btn secondary">Logout</button>
+        </div>
       `;
 
       document.getElementById("logoutBtn").onclick = () => {
@@ -111,11 +117,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateDatasetUI(fileName, fileSize = null) {
+    datasetBar.classList.remove("empty", "active");
+
     if (!fileName) {
+      datasetBar.classList.add("empty");
       datasetBar.textContent = "📄 No dataset selected";
     } else {
-      datasetBar.textContent = fileSize
-        ? `📄 ${fileName} (${fileSize})`
+      datasetBar.classList.add("active");
+
+      datasetBar.innerHTML = fileSize
+        ? `📄 ${fileName} <span class="file-size">(${fileSize})</span>`
         : `📄 ${fileName}`;
     }
   }

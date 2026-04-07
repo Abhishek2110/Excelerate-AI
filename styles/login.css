@@ -148,12 +148,72 @@ body.dark .theme-btn {
   transform: scale(0.95);
 }
 
+/* ============================= */
+/* GOOGLE BUTTON */
+/* ============================= */
+
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  width: 100%;
+  padding: 12px;
+
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+
+  background: rgba(255, 255, 255, 0.05);
+  color: #ddd;
+
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+
+  backdrop-filter: blur(10px);
+
+  transition: all 0.2s ease;
+}
+
+/* icon */
+.google-btn img {
+  width: 18px;
+  height: 18px;
+}
+
+/* hover */
+.google-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.02);
+}
+
+/* active */
+.google-btn:active {
+  transform: scale(0.97);
+}
+
+/* ============================= */
+/* DARK MODE */
+/* ============================= */
+
+body.dark .google-btn {
+  background: #2a2a2a;
+  border-color: #444;
+  color: #eee;
+}
+
+body.dark .google-btn:hover {
+  background: #333;
+}
+
 /* ========================= */
 /* SIGNUP */
 /* ========================= */
 
 .signup-text {
   margin-top: 15px;
+  margin-bottom: 12px;
   font-size: 0.9rem;
   color: var(--subtitle);
 }
