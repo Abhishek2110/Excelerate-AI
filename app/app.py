@@ -6,7 +6,7 @@ import pandas as pd
 import requests
 import io
 import os
-
+import re
 from .auth import hash_password, create_access_token, verify_password, decode_token
 
 from sqlalchemy.orm import Session
@@ -79,6 +79,10 @@ def get_optional_user(authorization: str = Header(None), db: Session = Depends(g
     except:
         return None
     
+def validate_email(email: str):
+    pattern = r'^[^@]+@[^@]+\.[^@]+$'
+    return re.match(pattern, email)
+
 # =========================
 # HOME
 # =========================
@@ -180,6 +184,22 @@ def ask_question(
     db: Session = SessionLocal()
 
     try:
+        
+        # =========================
+        # INPUT VALIDATION 🔥
+        # =========================
+
+        query = query.strip()
+
+        if not query:
+            return {"error": "Query cannot be empty"}
+
+        if len(query) < 2:
+            return {"error": "Query too short"}
+
+        if len(query) > 500:
+            return {"error": "Query too long (max 500 chars)"}
+        
         # =========================
         # LOAD DATA
         # =========================
@@ -365,6 +385,25 @@ def rename_chat(
     db: Session = Depends(get_db)
 ):
     try:
+        # =========================
+        # TITLE VALIDATION 🔥
+        # =========================
+
+        title = title.strip()
+
+        if not title:
+            return {"error": "Title cannot be empty"}
+
+        if len(title) < 3:
+            return {"error": "Title too short"}
+
+        if len(title) > 50:
+            return {"error": "Title too long (max 50 chars)"}
+
+        # =========================
+        # FETCH CHAT
+        # =========================
+
         chat = db.query(Chat).filter(Chat.id == chat_id).first()
 
         if not chat:
@@ -374,13 +413,17 @@ def rename_chat(
         if chat.user_id != current_user.id:
             return {"error": "Unauthorized"}
 
+        # =========================
+        # UPDATE
+        # =========================
+
         chat.title = title
         db.commit()
 
         return {"message": "Chat renamed successfully"}
+
     finally:
         db.close()
-
 
 # =========================
 # DELETE CHAT
@@ -406,6 +449,12 @@ def delete_chat(chat_id: str):
 @app.post("/signup/")
 def signup(email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
 
+    if not validate_email(email):
+        raise HTTPException(status_code=400, detail="Invalid email")
+
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password too short")
+    
     existing = db.query(User).filter(User.email == email).first()
     if existing:
         return {"error": "User already exists"}
@@ -422,6 +471,13 @@ def signup(email: str = Form(...), password: str = Form(...), db: Session = Depe
 
 @app.post("/login/")
 def login(email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+    
+    if not validate_email(email):
+        raise HTTPException(status_code=400, detail="Invalid email")
+
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password too short")
+    
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")

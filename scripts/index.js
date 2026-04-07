@@ -67,6 +67,20 @@ document.addEventListener("DOMContentLoaded", () => {
     spinner.style.display = show ? "block" : "none";
   }
 
+  function validateQuery(query) {
+    if (!query) return "Message cannot be empty";
+    if (query.length < 2) return "Message too short";
+    if (query.length > 500) return "Message too long";
+    return null;
+  }
+
+    function validateTitle(query) {
+    if (!query) return "Title cannot be empty";
+    if (query.length < 2) return "Title too short";
+    if (query.length > 500) return "Title too long";
+    return null;
+  }
+
   function showToast(message, type = "success") {
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
@@ -277,6 +291,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     rename.onclick = async () => {
       const newTitle = prompt("Enter new name:");
+
+      const error = validateTitle(newTitle);
+      if (error) {
+        showToast(error, "error");
+        return;
+      }
+
       if (!newTitle) return;
 
       await fetch(`/chats/${chat.id}`, {
@@ -331,6 +352,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   sendBtn.addEventListener("click", async () => {
     const message = messageInput.value.trim();
+
+    const error = validateQuery(message);
+    if (error) {
+      showToast(error, "error");
+      return;
+    }
     if (!message) return;
 
     appendMessage(message, "user");

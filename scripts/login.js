@@ -33,19 +33,44 @@ document.addEventListener("DOMContentLoaded", () => {
     setTheme(!isDark);
   });
 
+  function validateEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function validatePassword(password) {
+    return password.length >= 6;
+  }
   /* ============================= */
-  /* LOGIN */
+  /* LOGIN FUNCTION */
   /* ============================= */
 
-  loginBtn.addEventListener("click", async () => {
+  async function handleLogin() {
 
     const emailVal = email.value.trim();
     const passwordVal = password.value.trim();
+
+    // 🔥 EMAIL VALIDATION
+    if (!validateEmail(emailVal)) {
+      errorMsg.textContent = "Enter a valid email address";
+      return;
+    }
+
+    // 🔥 PASSWORD VALIDATION
+    if (!validatePassword(passwordVal)) {
+      errorMsg.textContent = "Password must be at least 6 characters";
+      return;
+    }
+
+    errorMsg.textContent = "";
 
     if (!emailVal || !passwordVal) {
       errorMsg.textContent = "Please fill all fields";
       return;
     }
+
+    // 🔥 UX: disable button + loading
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Logging in...";
 
     const formData = new FormData();
     formData.append("email", emailVal);
@@ -68,9 +93,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } catch {
       errorMsg.textContent = "Server error. Try again.";
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = "Login";
     }
+  }
 
-  });
+  /* ============================= */
+  /* CLICK LOGIN */
+  /* ============================= */
+
+  loginBtn.addEventListener("click", handleLogin);
+
+  /* ============================= */
+  /* ENTER KEY SUPPORT */
+  /* ============================= */
+
+  function triggerLoginOnEnter(e) {
+    if (e.key === "Enter") {
+      handleLogin();
+    }
+  }
+
+  email.addEventListener("keypress", triggerLoginOnEnter);
+  password.addEventListener("keypress", triggerLoginOnEnter);
 
   /* ============================= */
   /* SIGNUP REDIRECT */

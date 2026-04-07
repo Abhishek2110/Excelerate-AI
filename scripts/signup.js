@@ -34,18 +34,49 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* ============================= */
-  /* SIGNUP */
+  /* VALIDATION */
   /* ============================= */
 
-  signupBtn.addEventListener("click", async () => {
+  function validateEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function validatePassword(password) {
+    return password.length >= 6;
+  }
+
+  /* ============================= */
+  /* SIGNUP FUNCTION */
+  /* ============================= */
+
+  async function handleSignup() {
 
     const emailVal = email.value.trim();
     const passwordVal = password.value.trim();
 
+    // 🔥 EMPTY CHECK FIRST
     if (!emailVal || !passwordVal) {
       errorMsg.textContent = "Please fill all fields";
       return;
     }
+
+    // 🔥 EMAIL VALIDATION
+    if (!validateEmail(emailVal)) {
+      errorMsg.textContent = "Enter a valid email address";
+      return;
+    }
+
+    // 🔥 PASSWORD VALIDATION
+    if (!validatePassword(passwordVal)) {
+      errorMsg.textContent = "Password must be at least 6 characters";
+      return;
+    }
+
+    errorMsg.textContent = "";
+
+    // 🔥 UX improvement
+    signupBtn.disabled = true;
+    signupBtn.textContent = "Creating account...";
 
     const formData = new FormData();
     formData.append("email", emailVal);
@@ -68,9 +99,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } catch {
       errorMsg.textContent = "Server error. Try again.";
+    } finally {
+      signupBtn.disabled = false;
+      signupBtn.textContent = "Sign Up";
     }
+  }
 
-  });
+  /* ============================= */
+  /* CLICK */
+  /* ============================= */
+
+  signupBtn.addEventListener("click", handleSignup);
+
+  /* ============================= */
+  /* ENTER KEY SUPPORT */
+  /* ============================= */
+
+  function triggerSignupOnEnter(e) {
+    if (e.key === "Enter") {
+      handleSignup();
+    }
+  }
+
+  email.addEventListener("keypress", triggerSignupOnEnter);
+  password.addEventListener("keypress", triggerSignupOnEnter);
 
   /* ============================= */
   /* REDIRECT */
