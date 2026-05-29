@@ -10,6 +10,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const token = localStorage.getItem("token");
   const isLoggedIn = !!token;
 
+  if (isLoggedIn) {
+    scheduleAutoLogout(token);
+  }
+
   const sendBtn = document.getElementById("sendBtn");
   const messageInput = document.getElementById("messageInput");
   const chatMessages = document.getElementById("chatMessages");
@@ -135,6 +139,38 @@ document.addEventListener("DOMContentLoaded", () => {
     return token ? { "Authorization": "Bearer " + token } : {};
   }
 
+  function logout() {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+  }
+
+  function scheduleAutoLogout(token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+
+      const expiresAt = payload.exp * 1000;
+      const timeRemaining = expiresAt - Date.now();
+
+      if (timeRemaining <= 0) {
+        logout();
+        return;
+      }
+
+      setTimeout(() => {
+        showToast("Session expired. Please login again.", "error");
+
+        setTimeout(() => {
+          logout();
+        }, 1500);
+
+      }, timeRemaining);
+
+    } catch (err) {
+      console.error("Token parse error:", err);
+      logout();
+    }
+  }
+
   /* ============================= */
   /* Upload */
   /* ============================= */
@@ -165,6 +201,11 @@ document.addEventListener("DOMContentLoaded", () => {
         body: formData
       });
 
+      if (response.status === 401) {
+        logout();
+        return;
+      }
+
       const result = await response.json();
       showSpinner(false);
 
@@ -194,6 +235,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("/chats/", {
         headers: getAuthHeader()
       });
+
+      if (response.status === 401) {
+        logout();
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Failed to fetch chats");
@@ -245,6 +291,11 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: getAuthHeader()
       });
 
+      if (response.status === 401) {
+        logout();
+        return;
+      }
+
       if (!response.ok) throw new Error("Failed to fetch messages");
 
       const messages = await response.json();
@@ -259,6 +310,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const chatsResponse = await fetch("/chats/", {
         headers: getAuthHeader()
       });
+
+      if (chatsResponse.status === 401) {
+        logout();
+        return;
+      }
 
       const chats = await chatsResponse.json();
       const currentChat = chats.find(c => c.id === chatId);
@@ -388,6 +444,11 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: getAuthHeader(),
         body: formData
       });
+
+      if (response.status === 401) {
+        logout();
+        return;
+      }
 
       const result = await response.json();
       showSpinner(false);
